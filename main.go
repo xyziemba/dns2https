@@ -1,11 +1,14 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"flag"
 	"fmt"
 	"log"
+	"net"
 	"net/http"
+	"net/url"
 
 	"github.com/miekg/dns"
 )
@@ -14,6 +17,33 @@ type dnsOverHTTPSResolver struct {
 	Endpoint         string
 	EdnsDisable      bool
 	CheckingDisabled bool
+	BootstrapDNSIPs  []string
+
+	resolver   *SingleARecordResolver
+	httpClient *http.Client
+}
+
+func (r *dnsOverHTTPSResolver) BootstrapResolver() (*SingleARecordResolver, error) {
+	if r.resolver == nil {
+		endpointURL, err := url.Parse(r.Endpoint)
+		if err != nil {
+			return nil, fmt.Errorf("invalid httpsEndpoint '%s'", endpointURL)
+		}
+		endpointHost := endpointURL.Host
+		r.resolver = NewSingleARecordResolver(endpointHost)
+	}
+	return r.resolver, nil
+}
+
+func (r *dnsOverHTTPSResolver) HTTPClient() *http.Client {
+	if r.httpClient == nil {
+		r.httpClient = &http.Client{
+			Transport: &http.Transport{
+				DialContext: dialContext,
+			},
+		}
+	}
+	return r.httpClient
 }
 
 func writeMsgOrCrash(w dns.ResponseWriter, msg *dns.Msg) {
@@ -89,7 +119,9 @@ func (resolver dnsOverHTTPSResolver) ServeDNS(w dns.ResponseWriter, req *dns.Msg
 	}
 
 	// HTTP get and JSON parse
-	resp, err := http.Get(url)
+	httpReq, err := http.NewRequest("GET", url, http.NoBody)
+	resp, err := resolver.HTTPClient().Do(httpReq)
+
 	if err != nil {
 		log.Printf("[ERROR] Request to '%s' failed with %s", url, err.Error())
 		respondWithErrOrCrash(w, dns.RcodeServerFailure, req)
@@ -109,6 +141,28 @@ func (resolver dnsOverHTTPSResolver) ServeDNS(w dns.ResponseWriter, req *dns.Msg
 		return
 	}
 	writeMsgOrCrash(w, res)
+}
+
+var ipResolvingTransport http.RoundTripper = &http.Transport{
+	// Custom DialContext allows us to use a custom resolver
+	//
+	// TODO: using a new Dialer with a custom resolver may be more robust
+	DialContext: dialContext,
+}
+
+func dialContext(ctx context.Context, network, addr string) (net.Conn, error) {
+	host, port, err := net.SplitHostPort(addr)
+	if err != nil {
+		return nil, err
+	}
+
+	ipHost, err := NewSingleARecordResolver(host).Resolve()
+	if err != nil {
+		return nil, err
+	}
+
+	ipAddr := net.JoinHostPort(ipHost, port)
+	return http.DefaultTransport.(*http.Transport).DialContext(ctx, network, ipAddr)
 }
 
 var verbose bool
