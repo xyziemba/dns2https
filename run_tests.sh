@@ -2,7 +2,7 @@
 
 export PORT=8053
 
-./dnsproxy -port $PORT >&2 &
+./dns2https -port $PORT >&2 &
 DNSPID=$!
 bats app-tests.bats
 CODE=$?

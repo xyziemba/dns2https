@@ -1,4 +1,4 @@
-package dnsproxylib
+package dns2httpslib
 
 import (
 	"fmt"

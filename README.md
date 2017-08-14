@@ -1,6 +1,6 @@
 # DNS loopback to DNS-over-HTTPS proxy
 
-dnsproxy provides a lightweight, local DNS server that resolves requests using
+dns2https provides a lightweight, local DNS server that resolves requests using
 Google's [DNS-over-HTTPS](https://developers.google.com/speed/public-dns/docs/dns-over-https)
 protocol.
 
@@ -9,8 +9,8 @@ protocol.
 Mac users via Homebrew:
 
 ```
-brew install xyziemba/brew/dnsproxy
-sudo brew services start xyziemba/brew/dnsproxy
+brew install xyziemba/brew/dns2https
+sudo brew services start xyziemba/brew/dns2https
 
 # Modify Wi-Fi below to use with other network services
 sudo networksetup -setdnsservers Wi-Fi 127.0.0.1

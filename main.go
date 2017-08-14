@@ -9,7 +9,7 @@ import (
 	"syscall"
 
 	"github.com/miekg/dns"
-	"github.com/xyziemba/dnsproxy/dnsproxylib"
+	"github.com/xyziemba/dns2https/dns2httpslib"
 )
 
 func main() {
@@ -24,7 +24,7 @@ func main() {
 
 	flag.Parse()
 
-	resolver := &dnsproxylib.DnsOverHTTPSResolver{
+	resolver := &dns2httpslib.DnsOverHTTPSResolver{
 		Endpoint:         *httpsEndpoint,
 		EdnsDisable:      *ednsDisable,
 		CheckingDisabled: *cd,

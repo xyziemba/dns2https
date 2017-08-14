@@ -1,13 +1,13 @@
 SRC = $(shell find . -type f -name "*.go" -print)
 
-dnsproxy: $(SRC)
+dns2https: $(SRC)
 	go build
 
 .PHONY: clean test
 
 clean:
-	rm dnsproxy
+	rm dns2https
 
-test-dns: dnsproxy
-	./dnsproxy -selftest
+test-dns: dns2https
+	./dns2https -selftest
 	./run_tests.sh

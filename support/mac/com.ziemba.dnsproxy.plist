@@ -3,20 +3,20 @@
 <plist version="1.0">
 	<dict>
 		<key>Label</key>
-		<string>com.ziemba.dnsproxy</string>
+		<string>com.ziemba.dns2https</string>
 		<key>Program</key>
-		<string>/usr/local/bin/dnsproxy</string>
+		<string>/usr/local/bin/dns2https</string>
         <key>ProgramArguments</key>
         <array>
-            <string>dnsproxy</string>
+            <string>dns2https</string>
             <string>-launchd</string>
         </array>
 		<key>KeepAlive</key>
 		<true/>
         <key>StandardOutPath</key>
-        <string>/tmp/dnsproxy.log</string>
+        <string>/tmp/dns2https.log</string>
         <key>StandardErrorPath</key>
-        <string>/tmp/dnsproxy.stderr.log</string>
+        <string>/tmp/dns2https.stderr.log</string>
         <key>Sockets</key>
         <dict>
             <key>UdpListener</key>
