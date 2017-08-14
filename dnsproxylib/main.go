@@ -112,6 +112,9 @@ func (resolver DnsOverHTTPSResolver) ServeDNS(w dns.ResponseWriter, req *dns.Msg
 	if resolver.EdnsDisable {
 		googleRequest.EdnsClientSubnet = "0.0.0.0/0"
 	}
+	if req.CheckingDisabled {
+		googleRequest.CheckingDisabled = req.CheckingDisabled
+	}
 
 	url := resolver.Endpoint + googleRequest.ToQueryString()
 	if resolver.Debug {
