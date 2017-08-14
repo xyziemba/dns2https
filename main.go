@@ -20,6 +20,7 @@ func main() {
 	httpsEndpoint := flag.String("api", "https://dns.google.com/resolve", "resolver HTTPS address")
 	verbose := flag.Bool("v", false, "print info on each request")
 	launchd := flag.Bool("launchd", false, "use when starting with launchd to transfer ports")
+	selftest := flag.Bool("selftest", false, "run a simple self test on port 8053")
 
 	flag.Parse()
 
@@ -30,7 +31,16 @@ func main() {
 		Debug:            *verbose,
 	}
 
+	if *launchd && *selftest {
+		log.Fatal("-selftest and -launchd are mutually exclusive")
+	}
+
+	if *selftest {
+		*port = 8053
+	}
+
 	var udpServer, tcpServer *dns.Server
+	started := make(chan string, 1) // buffered because this may not be read
 
 	if *launchd {
 		// get file descriptors from launchd
@@ -60,9 +70,10 @@ func main() {
 		}()
 	} else {
 		udpServer = &dns.Server{
-			Addr:    fmt.Sprintf(":%d", *port),
-			Net:     "udp",
-			Handler: resolver,
+			Addr:              fmt.Sprintf(":%d", *port),
+			Net:               "udp",
+			Handler:           resolver,
+			NotifyStartedFunc: func() { started <- "started" },
 		}
 		tcpServer = &dns.Server{
 			Addr:    fmt.Sprintf(":%d", *port),
@@ -82,10 +93,24 @@ func main() {
 		}()
 	}
 
-	shutdown := make(chan os.Signal)
-	signal.Notify(shutdown, syscall.SIGINT, syscall.SIGHUP, syscall.SIGTERM)
-	sig := <-shutdown
-	log.Printf("Shutting down. Received signal: %s", sig.String())
+	if !*selftest {
+		shutdown := make(chan os.Signal)
+		signal.Notify(shutdown, syscall.SIGINT, syscall.SIGHUP, syscall.SIGTERM)
+		sig := <-shutdown
+		log.Printf("Shutting down. Received signal: %s", sig.String())
+	} else {
+		<-started // wait to start udp server
+
+		client := &dns.Client{}
+		msg := &dns.Msg{}
+		msg.SetQuestion("brew.sh.", dns.TypeA)
+		msg.RecursionDesired = true
+
+		_, _, err := client.Exchange(msg, fmt.Sprintf(":%d", *port))
+		if err != nil {
+			log.Fatalf("selftest failed\n%s\n", err.Error())
+		}
+	}
 
 	err := udpServer.Shutdown()
 	if err != nil {
